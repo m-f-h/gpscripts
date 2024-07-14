@@ -16,39 +16,30 @@
 
 \\ binomial(n,k) mod m
 {  binomod(n,k,m) = my(d,e,p,q,r,t,v,f,np,kp,rp,N,K,R,F);
-   
-   if(k<0 || m==1, return(Mod(0,m)) );
-   if(n<0 ,return( (-1)^k*binomod(-n+k-1,k,m) ) );
-   if(k>n, return(Mod(0,m)) );
-   if(k==0||k==n, return(Mod(1,m)) );
 
-   if( ispseudoprime(m),
+   if( k <= 0 || k >= n || m == 1, \\ group together all "pathological" cases (including n<0)
+       return( if( n<0, (-1)^k*binomod(-n+k-1,k,m), Mod(k==0 || k==n, m) ))
+   );
+
+   if( ispseudoprime(m),  \\ use Lucas' Theorem
      p = m;
-     v = Map(); \\ v = vector(p);
+     v = Map();    \\ map r => exponent/multiplicity of r! (mod p)
      while(k,
        np = n%p;
        kp = k%p;
-       if(kp>np,return(Mod(0,p)));
-       if(kp && np-kp,
-            \\ v[np]++; v[kp]--; v[np-kp]--;
+       if( kp > np, return(Mod(0,p)));
+       if( kp && np-kp,    \\ if kp=0 or np=kp, C(np,kp)=1
+         \\ v[np]++; v[kp]--; v[np-kp]--;
 
-         t = 0;
-         mapisdefined(v,np,&t);
-         mapput(v,np,t+1);
-
-         t = 0;
-         mapisdefined(v,kp,&t);
-         mapput(v,kp,t-1);
-
-         t = 0;
-         mapisdefined(v,np-kp,&t);
-         mapput(v,np-kp,t-1);
+         mapput(v, np,  if( mapisdefined(v, np, &t), t)+1);
+         mapput(v, kp,  if( mapisdefined(v, kp, &t), t)-1);
+         mapput(v,np-kp,if( mapisdefined(v,np-kp,&t),t)-1);
        );
-       n\=p; k\=p;
+       n \= p; k \= p;
      );
      f = r = Mod(1,p); 
-     \\ for(i=2,p-1,f*=i;if(mapv[i],r*=f^v[i]) );
-     for(i=2,p-1,f*=i; if(mapisdefined(v,i,&t), r*=f^t) );
+     for(i=2, p-1, f *= i; if(mapisdefined(v,i,&t) && t, r *= f^t) );
+     \\ foreach(v, x, if ( t = x[1][2], r *= x[1][1]! ^ t )); \\ or with factorialmodp
      return(r);
    );
 
@@ -59,11 +50,11 @@
      p = f[z,1];
      q = f[z,2];
 
-     d = ceil( log(n-0.5)/log(p) );
+     d = logint(n-1,p)+1; \\ equal to but ~ 100 x faster than: ceil( log(n-0.5)/log(p) );
 
-     np = vector(d+1,i,(n\p^(i-1))%p);
-     kp = vector(d+1,i,(k\p^(i-1))%p);
-     rp = vector(d+1,i,((n-k)\p^(i-1))%p);
+     np = vector(d+1,i, n\p^(i-1) ) % p;
+     kp = vector(d+1,i, k\p^(i-1) ) % p;
+     rp = vector(d+1,i, (n-k)\p^(i-1)) % p;
 
      \\ cumulative number "carries" from (i-1)-th position and on
      e = vector(d+1); 
@@ -78,9 +69,9 @@
      );
      q -= e[1];
 
-     N = vector(d+1,i,(n\p^(i-1))%p^q);
-     K = vector(d+1,i,(k\p^(i-1))%p^q);
-     R = vector(d+1,i,((n-k)\p^(i-1))%p^q);
+     N = vector(d+1,i, n\p^(i-1) ) % p^q;
+     K = vector(d+1,i, k\p^(i-1) ) % p^q;
+     R = vector(d+1,i, (n-k)\p^(i-1))% p^q;
 
      v = p^e[1] * prod(j=1,d+1, factorialmodp1(N[j],p,q) / factorialmodp1(K[j],p,q) / factorialmodp1(R[j],p,q) );
 
