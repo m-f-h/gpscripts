@@ -1,5 +1,6 @@
 /*
 ** binomod.gp ver. 1.6 (c) 2007,21 by Max Alekseyev
+** (minor changes 14-Jul-2024 by M.F.Hasler)
 **
 ** binomod(n,k,m)	computes binomial(n,k) modulo integer m
 ** binocoprime(n,k,m)	tests if binomial(n,k) is co-prime to integer m
@@ -39,7 +40,7 @@
      );
      f = r = Mod(1,p); 
      for(i=2, p-1, f *= i; if(mapisdefined(v,i,&t) && t, r *= f^t) );
-     \\ foreach(v, x, if ( t = x[1][2], r *= x[1][1]! ^ t )); \\ or with factorialmodp
+     \\ foreach(v, x, if ( t = x[1][2], r *= factorialmodp(x[1][1], p) ^ t ));
      return(r);
    );
 
@@ -51,7 +52,8 @@
      q = f[z,2];
 
      d = logint(n-1,p)+1; \\ equal to but ~ 100 x faster than: ceil( log(n-0.5)/log(p) );
-
+    \\ Note: We never have n <= 1 here, since then k <= 0 or k >= n is done earlier.
+    
      np = vector(d+1,i, n\p^(i-1) ) % p;
      kp = vector(d+1,i, k\p^(i-1) ) % p;
      rp = vector(d+1,i, (n-k)\p^(i-1)) % p;
@@ -83,15 +85,15 @@
 
 
 \\ is binomial(n,k) co-prime to m
-{  binocoprime(n,k,m) = my(p,np,kp,f);
+{  binocoprime(n,k,m) = my(np,kp);
    if(k<0,return(0));
    if(n<0,n=-n+k-1);
    if(k>n,return(0));
 
-   foreach(factorint(m)[,1],p,
+   foreach(factorint(m)[,1], p,
      np=n; kp=min(k,n-k);
      while(kp,
-       if((kp%p)>(np%p),return(0));
+       if( kp%p > np%p, return(0));
        np\=p; kp\=p;
      );
    );
@@ -119,7 +121,7 @@
 }
 
 
-\\ factorial_p modulo prime p^k
+\\ factorial modulo prime p^k
 {  factorialmodp1(n,p,k) = my(r);
    if( n<=1, return(1+O(p^k)));
 
